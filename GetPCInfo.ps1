@@ -232,6 +232,14 @@ function Invoke-GetPCInfo {
             Select-Object SerialNumber | Format-Table -AutoSize
         Get-WmiObject -Class Win32_NetworkAdapterConfiguration -ComputerName $comp -Filter 'IpEnabled=True' |
             Select-Object IPAddress, MACAddress | Format-Table -AutoSize
+
+        $ramValue = (Get-CimInstance -ClassName Win32_ComputerSystem -ComputerName $comp).TotalPhysicalMemory
+        Get-CimInstance -ClassName Win32_LogicalDisk -ComputerName $comp -Filter "DriveType=3" |
+            Select-Object @{Name='Drive';Expression={$_.DeviceID}}, @{Name='Capacity (GB)';Expression={[math]::Round($_.Size / 1GB, 0)}} | Format-Table -AutoSize
+
+        Write-Host "RAM"
+        Write-Host "---"
+        Write-Host ([math]::Round($ramValue / 1GB, 0).ToString() + ' GB')
         Write-AfterTable
 
         # -------- Installed Software --------
