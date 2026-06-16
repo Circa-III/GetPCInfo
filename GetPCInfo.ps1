@@ -27,7 +27,7 @@ param(
     [string]$TranscriptFolder = 'C:\Computer Reports'
 )
 
-$Version = "GetPCInfo | Version 26.03.05"
+$Version = "GetPCInfo | Version 26.05.05"
 
 # Detect /t as a standalone token (PowerShell passes unbound tokens in $args)
 $Transcript = $Transcript -or ($args | Where-Object { $_ -ieq '/t' } | ForEach-Object { $true } | Select-Object -First 1)
