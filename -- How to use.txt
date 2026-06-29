@@ -6,11 +6,13 @@ Wait for it to finish pull the info. If there is red error text saying "Attempti
 
 It should list the name, serial, current logged in user, asset, IP address, current logged in user, Printers installed, software installed (minus a bunch of pre-installed software and drivers), Monitors plugged in, OneDrive sync status, and the AD location and groups.
 
-If the files are not in the C:\ folder the shortcuts won't work until you change the path of the shortcut to point to where you put the files.\
+If the files are not in the C:\ folder the shortcuts won't work until you change the path of the shortcut to point to where you put the files.
 
 If you have any questions, reach out to Brad Linder (blinder@ecommunity)
 
 =======CHANGELOG========
+-===[ UPDATE 26.06.29 ]===-
+- Removed local Active Directory requirement to function
 -===[ UPDATE 26.05.05 ]===-
 - Added disk storage and RAM amounts
 -===[ UPDATE 26.03.05 ]===-

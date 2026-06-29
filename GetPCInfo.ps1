@@ -27,7 +27,7 @@ param(
     [string]$TranscriptFolder = 'C:\Computer Reports'
 )
 
-$Version = "GetPCInfo | Version 26.05.05"
+$Version = "GetPCInfo | Version 26.06.29"
 
 # Detect /t as a standalone token (PowerShell passes unbound tokens in $args)
 $Transcript = $Transcript -or ($args | Where-Object { $_ -ieq '/t' } | ForEach-Object { $true } | Select-Object -First 1)
@@ -119,6 +119,55 @@ function Convert-ODSyncProgressState {
     }
 }
 
+function Get-ADComputerInfo {
+    param([Parameter(Mandatory)][string]$ComputerName)
+
+    if (-not $ComputerName) {
+        throw 'ComputerName is required.'
+    }
+
+    # Prefer the ActiveDirectory module if available.
+    if (Get-Module -ListAvailable -Name ActiveDirectory) {
+        try {
+            Import-Module ActiveDirectory -ErrorAction Stop | Out-Null
+            if (Get-Command Get-ADComputer -ErrorAction SilentlyContinue) {
+                return Get-ADComputer -Filter "Name -eq '$ComputerName'" -Properties Description, DistinguishedName -ErrorAction Stop
+            }
+        } catch {
+            # fall back to ADSI if the module cannot be loaded
+        }
+    }
+
+    # Fallback: query Active Directory directly with ADSI/LDAP.
+    try {
+        $root = [ADSI]"LDAP://RootDSE"
+        $baseDn = $root.defaultNamingContext
+        $searchRoot = New-Object System.DirectoryServices.DirectoryEntry("LDAP://$baseDn")
+        $searcher = New-Object System.DirectoryServices.DirectorySearcher($searchRoot)
+        $searcher.PageSize = 1000
+
+        $escapedName = $ComputerName -replace '([\\\*\(\)\0])', '\\$1'
+        $searcher.Filter = "(&(objectClass=computer)(sAMAccountName=$escapedName`$))"
+
+        $searcher.PropertiesToLoad.Add('name') | Out-Null
+        $searcher.PropertiesToLoad.Add('description') | Out-Null
+        $searcher.PropertiesToLoad.Add('distinguishedName') | Out-Null
+        $searcher.SizeLimit = 1
+
+        $result = $searcher.FindOne()
+        if (-not $result) { return $null }
+
+        $entry = $result.GetDirectoryEntry()
+        [PSCustomObject]@{
+            Name              = $entry.Properties['name'].Value
+            Description       = $entry.Properties['description'].Value
+            DistinguishedName = $entry.Properties['distinguishedName'].Value
+        }
+    } catch {
+        throw $_
+    }
+}
+
 # ---------------- Core routine (runs once for a set of computers) ----------------
 function Invoke-GetPCInfo {
     param(
@@ -170,8 +219,7 @@ function Invoke-GetPCInfo {
     $adObj = $null
     $adQueryError = $null
     try {
-        # Use Name filter (robust for regular hostnames)
-        $adObj = Get-ADComputer -Filter "Name -eq '$comp'" -Properties Description, DistinguishedName -ErrorAction Stop
+        $adObj = Get-ADComputerInfo -ComputerName $comp
     } catch {
         $adQueryError = $_
     }
@@ -541,7 +589,7 @@ function Invoke-GetPCInfo {
             } | Format-Table -AutoSize
         }
         catch {
-            Write-Host "Get-ADComputer not available or failed: $($_.Exception.Message)"
+            Write-Host "Active Directory lookup failed: $($_.Exception.Message)"
         }
         Write-AfterTable
 
@@ -578,7 +626,7 @@ else {
         Write-Host "============================"
         Write-Host $Version -ForegroundColor Cyan
         Write-Host "============================"
-        Write-Host "Type computer names (comma-separated) and press ENTER."
+        Write-Host "Type computer names (comma-separated) or paste a list and press ENTER."
         Write-Host "Add /t after the PC name to save a transcript text file (i.e. NR-ISPC1 /t)"
         Write-Host ""
 

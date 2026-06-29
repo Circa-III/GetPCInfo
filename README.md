@@ -15,6 +15,9 @@ If the files are not in the C:\ folder the shortcuts won't work until you change
 If you have any questions, reach out to Brad Linder (blinder@ecommunity)
 
 ## CHANGELOG
+-===[ UPDATE 26.06.29 ]===-
+- Removed local Active Directory requirement to function
+
 -===[ UPDATE 26.05.05 ]===-
 - Added disk storage and RAM amounts
 
